@@ -36,6 +36,25 @@ git push -u origin main
 
 ```
 
+## Upload to PyPI:
+```
+Get LICENSE from Github > Add File > Create New File > Type "LICENSE" and click on "Choose A Template"
+
+Local:
+    git pull origin main
+
+Go to PyPI.com > Account Settings > Add API Token
+Give Token name
+    Scope: (Entire Account)
+Go to Github Repo > Settings > Secrets
+    Add a Secret:
+        Name: PYPI_API_TOKEN
+        Value: (Copied from Pypi)
+
+Trigger the Actions Pipeline to Push to PyPI:
+    git push origin main
+```
+
 ## References - 
 
 * [Official python docs for PYPI](https://packaging.python.org/tutorials/packaging-projects/)
