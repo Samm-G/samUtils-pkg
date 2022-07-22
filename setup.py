@@ -8,7 +8,7 @@ USER_NAME = "Samm-G"
 PROJECT_NAME = "samutils-pkg"
 
 setuptools.setup(
-    name=f"{PKG_NAME}-{USER_NAME}",
+    name=f"{PKG_NAME}",
     version="0.0.1",
     author=USER_NAME,
     author_email="gsamarth97@gmail.com",
