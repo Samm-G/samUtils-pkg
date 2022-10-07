@@ -3,6 +3,8 @@ import os
 import joblib
 import logging
 
+from ml2 import ML2
+
 class Perceptron:
     def __init__(self, eta: float=None, epochs: int=None):
         self.weights = np.random.randn(3) * 1e-4 # small random weights
@@ -67,3 +69,6 @@ class Perceptron:
     
     def load(self, filepath):
         return joblib.load(filepath)
+
+if __name__ == '__main__':
+    print(ML2.st_theory.__doc__)

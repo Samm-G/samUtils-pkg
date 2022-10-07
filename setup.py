@@ -3,14 +3,15 @@ import setuptools
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
-PKG_NAME = "samutils_pkg"
+PKG_NAME = "masutils"
 USER_NAME = "Samm-G"
-PROJECT_NAME = "samutils-pkg"
+PROJECT_NAME = "masutils"
+VERSION = "0.0.1"
 
 setuptools.setup(
     name=f"{PKG_NAME}",
-    version="0.0.1",
-    author=USER_NAME,
+    version=f'{VERSION}',
+    author=f'{USER_NAME}',
     author_email="gsamarth97@gmail.com",
     description="A small package for perceptron",
     long_description=long_description,
@@ -27,9 +28,9 @@ setuptools.setup(
     package_dir={"": "src"},
     packages=setuptools.find_packages(where="src"),
     python_requires=">=3.6",
-    install_requires=[
-        "numpy==1.21.4",
-        "pandas==1.3.4",
-        "joblib==1.1.0"
-    ]
+    # install_requires=[
+    #     "numpy==1.21.4",
+    #     "pandas==1.3.4",
+    #     "joblib==1.1.0"
+    # ]
 )
