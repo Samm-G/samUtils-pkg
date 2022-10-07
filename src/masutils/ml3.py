@@ -1,4 +1,10 @@
 class ML3:
+    """
+    Getting Started:
+    
+    from IPython.display import display, Markdown
+    Markdown('<weak style="font-size:12px">{}</weak>'.format(ML3.st_theory.__doc__))
+    """
     def __init__(self):
         pass
 
