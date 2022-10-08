@@ -425,6 +425,12 @@ class ML3:
             Remove Insignificant Variables:
                 df_admissions.drop('Serial No.', axis = 1)
             
+            Get pairs of variables where correlation more than 0.8:
+                corr_matrix = df.corr().abs()
+                upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape),k=1).astype(np.bool))
+                features_corr = [col for col in upper.columns if any(upper[col] > 0.8)]
+                features_corr
+
             Numeric Variables Boxplots (Plotting Outliers):
                 fig, ax = plt.subplots(4,3, figsize=(30,16))
                 for var, subplt in zip(df.select_dtypes(include=np.number).columns, ax.flatten()):
@@ -460,8 +466,15 @@ class ML3:
                     plt.title('Elbow Plot', fontsize = 15)
                     plt.xlabel('No. of clusters (K)', fontsize = 15)
                     plt.ylabel('WCSS', fontsize = 15)
-                    plt.axvline(x = 5, color = 'red')                        
+                    plt.axvline(x = 5, color = 'red')
                     plt.show()
+
+            Elbow plot using KElbowVisualizer:
+                from yellowbrick.cluster import KElbowVisualizer
+                from sklearn.cluster import KMeans
+                model = KElbowVisualizer(KMeans(), k=15)
+                model.fit(X)
+                model.show()
 
             K-Value using Silhouette Score:
                 n_clusters = [2, 3, 4, 5, 6]
@@ -481,11 +494,29 @@ class ML3:
                     viz.show()
 
             Dendrogram Plot:
-                from scipy.cluster.hierarchy import linkage,dendrogram
-                plt.figure(figsize=(12,10))
-                ward_merge=linkage(data_dime_input_merged,method='ward')
-                dendrogram(ward_merge,truncate_mode='lastp',p=50)
-                plt.show()
+                Simple Plot:
+                    from scipy.cluster.hierarchy import linkage,dendrogram
+                    plt.figure(figsize=(12,10))
+                    ward_merge=linkage(data_dime_input_merged,method='ward')
+                    dendrogram(ward_merge,truncate_mode='lastp',p=50)
+                    plt.show()
+
+                Compare Performance of Different Linkages:
+                    from scipy.cluster.hierarchy import dendrogram,linkage
+                    from sklearn.metrics.pairwise import euclidean_distances
+                    linkages = ['centroid','single','complete','average','median','ward']
+                    coeff = []
+                    plt.rcParams['figure.figsize'] = (12,12)
+                    for i in linkages:
+                        linkage_ = linkage(df,method = i)
+                        eucli_dist = euclidean_distances(df)
+                        dist_array = eucli_dist[np.triu_indices(3609,k=1)]
+                        c,cophenet_dist = cophenet(linkage_,dist_array)
+                        coeff.append(c)
+                        dendrogram(linkage_,truncate_mode = 'lastp',p=100)
+                        plt.show()
+                    v = dict(zip(linkages,coeff))
+                    print(v)
 
             Build Clusters:
                 new_clusters = KMeans(n_clusters = 5, random_state = 10)
@@ -521,6 +552,7 @@ class ML3:
                 plt.show()
 
             Calculate Cophenet Coefficient:
+                from scipy.cluster.hierarchy import cophenet
                 from sklearn.metrics.pairwise import euclidean_distances
                 eucli_dist = euclidean_distances(features_scaled)
                 dist_array = eucli_dist[np.triu_indices(5192, k = 1)]
@@ -577,8 +609,7 @@ class ML3:
                 We can see that the algorithm has identified most of the technical products as the outliers.
                 Here we can see that the DBSCAN algorithm has not grouped the product like hierarchical clustering. Thus we can conclude that the DBSCAN algorithm is working poorly on this dataset.
 
-        PCA:
-
+        Raw PCA:
             Normalize Data:
                 X = iris.data
                 X_std = StandardScaler().fit_transform(X)
@@ -590,12 +621,32 @@ class ML3:
                 plt.tight_layout()
             Calculate EigenVals and Eigne Vecs:
                 eig_vals, eig_vecs = np.linalg.eig(cov_matrix)
-            Cumulative Variance Explained:
+            Cumulative Variance Explained and choosing Number of components on PCA:
                 tot = sum(eig_vals)
                 var_exp = [( i /tot ) * 100 for i in sorted(eig_vals, reverse=True)]
                 cum_var_exp = np.cumsum(var_exp)
                 print("Cumulative Variance Explained", cum_var_exp)
-            
+
+        PCA:
+            from sklearn.decomposition import PCA
+            pca = PCA()
+            pca.fit(df)
+            print(np.sum(pca.explained_variance_ratio_.cumsum() <= 0.9)) # Based on this, select n_components
+            pca  = PCA(n_components=102)
+            X_train_2 = pca.fit_transform(X_train)
+            X_test_2 = pca.transform(X_test)
+            explained_variance = pca.explained_variance_ratio_
+
+        SVD:
+            from sklearn.decomposition import TruncatedSVD
+            tsvd  = TruncatedSVD()
+            tsvd.fit(df)
+            print(np.sum(tsvd.explained_variance_ratio_.cumsum() <= 0.9)) # Based on this, select n_components
+            tsvd  = TruncatedSVD(n_components=2)
+            X_train_2 = tsvd.fit_transform(X_train)
+            X_test_2 = tsvd.transform(X_test)
+            explained_variance = tsvd.explained_variance_ratio_
+
         Cases:
 
             DT Before Applying PCA:
@@ -618,6 +669,9 @@ class ML3:
                 X_test = sc.transform(X_test)
                 from sklearn.decomposition import PCA
                 pca = PCA()
+                pca.fit(df)
+                print(np.sum(pca.explained_variance_ratio_.cumsum() <= 0.9)) # Based on this, select n_components
+                pca = PCA(n_components=52)
                 X_train_2 = pca.fit_transform(X_train)
                 X_test_2 = pca.transform(X_test)
                 explained_variance = pca.explained_variance_ratio_
@@ -629,6 +683,15 @@ class ML3:
                 print(classification_report(y_test,y_pred_DT_2))
                 print(accuracy_score(y_test, y_pred_DT_2))
 
+                Explained Vairance ratio with Elbow Plot for PCA:
+                    plt.figure(figsize=(10,7))
+                    plt.bar(range(pca_applied.shape[1]), pca.explained_variance_ratio_)
+                    plt.step(range(pca_applied.shape[1]),pca.explained_variance_ratio_.cumsum() )
+                    plt.xlabel("Principal components")
+                    plt.ylabel("Explained variance ratio")
+                    plt.axhline(0.9)
+                    plt.tight_layout()
+
             DT After Applying LDA:
                 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
                 model = LinearDiscriminantAnalysis()
@@ -636,6 +699,9 @@ class ML3:
                 sc = StandardScaler()
                 X_train = sc.fit_transform(X_train)
                 X_test = sc.transform(X_test)
+                model.fit(X_train,y_train)
+                print(np.sum(model.explained_variance_ratio_.cumsum() <= 0.9)) # Based on this, select n_components
+                model = LinearDiscriminantAnalysis(n_components=52)
                 model.fit(X_train,y_train)
                 y_pred = model.predict(X_test)
                 sns.heatmap(confusion_matrix(y_test, y_pred), annot=True)
@@ -681,8 +747,8 @@ class ML3:
                 mca_X_test = mca.fit_transform(X_test_cat)
                 main_mca_X_train = pd.concat([mca_X_train,X_train_num],axis = 1)
                 main_mca_X_test = pd.concat([mca_X_test,X_test_num],axis = 1)
-                explained_var = make_scorer(explained_variance_score)
-                explained_var
+                explained_vars = mca.explained_variance_ratio_.cumsum()
+                explained_vars
                 from sklearn import tree
                 model2=tree.DecisionTreeClassifier()
                 model2.fit(main_mca_X_train,y_train)

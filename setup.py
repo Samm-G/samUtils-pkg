@@ -6,7 +6,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 PKG_NAME = "masutils"
 USER_NAME = "Samm-G"
 PROJECT_NAME = "masutils"
-VERSION = "0.0.2"
+VERSION = "0.0.3"
 
 setuptools.setup(
     name=f"{PKG_NAME}",
