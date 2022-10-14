@@ -10,7 +10,7 @@ class NLP:
                 ● POS
                 ● TF-IDF
                 
-            ● NER
+            ● NER (Named Entitry Recognition) (Write in own words)
             
             ● Applications of NLP:
                 ● Check Credit worthiness
@@ -537,6 +537,13 @@ class NLP:
                 stemmer = PorterStemmer()
                 document_text = stemmer.stem_documents(document_text)
 
+                #Stem word by word..
+                from nltk.stem.porter import PorterStemmer
+                for idx,x in enumerate(words):
+                    porter_stemmer = PorterStemmer()
+                    words[idx]= porter_stemmer.stem(x)
+                print(words)
+
             Lemmatization:
                 from nltk.stem.wordnet import WordNetLemmatizer
                 # nltk.download('wordnet') # if required..
@@ -557,6 +564,58 @@ class NLP:
                     sentence.append(sequ)
                 corpus = sentence
                 print(corpus[1])
+
+            Awesome Combined Utility Function:
+
+                import pandas as pd
+                import numpy as np
+                import string 
+
+                # Tokenize
+                from nltk.tokenize import RegexpTokenizer
+                # Stop words, Stemming
+                from gensim.parsing.preprocessing import PorterStemmer, remove_stopwords, strip_punctuation, strip_multiple_whitespaces, preprocess_documents
+                
+                # Lemmatizaiton
+                from nltk.stem.wordnet import WordNetLemmatizer
+
+                # feature extraction
+                from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
+
+                # test train split
+                from sklearn.model_selection import train_test_split
+
+                # Model
+                from sklearn.linear_model import LogisticRegression
+
+                # metrics
+                from sklearn.metrics import accuracy_score
+
+
+                from nltk import FreqDist
+                # Copy paste everything above to make a preprocessing function
+
+                def preprocess_docs(series):
+                    series = series.str.lower()
+                    series.replace(regex=True, to_replace="https?://\S+|www.\S+", value="", inplace=True)
+                    series = series.apply(remove_stopwords).apply(strip_punctuation).apply(strip_multiple_whitespaces)
+
+                    # FOR STEMMING:
+                    # ps = PorterStemmer()
+                    # series = series.apply(ps.stem_sentence)
+
+                    # list_of_lists = preprocess_documents(series) # <- this thing does stemming also.
+                    list_of_lists = list(map(lambda doc: doc.split(), series.values))
+
+                    # FOR LEMMATIZATION
+                    # wl = WordNetLemmatizer()
+                    # list_of_lists = list(map((lambda list_of_tokens: [wl.lemmatize(token) for token in list_of_tokens]), list_of_lists))
+
+                    return list_of_lists
+
+                processed_entries = preprocess_docs(df.text)
+
+                processed_entries[:3]
         """
         pass
 
@@ -593,10 +652,13 @@ class NLP:
                 plt.xticks(fontsize = 20)
         
         Word Clouds:
-            from wordcloud import WordCloud
-            docs_strings = ' '.join(document_text)
-            len(docs_strings)
-            wc = WordCloud( collocations=False, background_color='white', stopwords=all_stopwords).generate(docs_strings)
+            from collections import Counter
+            from wordcloud import WordCloud, ImageColorGenerator
+            pos_data = data.loc[data['label']==1]
+            pos_head_lines = CleanTokenize(pos_data)
+            pos_lines = [j for sub in pos_head_lines for j in sub]
+            word_cloud_dict = Counter(pos_lines)
+            wc = WordCloud(width=1000, height=500).generate_from_frequencies(word_cloud_dict)
             plt.figure(figsize=(20,5))
             plt.imshow(wc)
             plt.axis('off');
@@ -623,8 +685,8 @@ class NLP:
                     return .0
                 return word_tf(word, token) * doc_idf()[word_index[word]]
             ##Word TF:
-            print( word_tf('excellent',data))
-            print (word_tf('order',data))
+            print(word_tf('excellent',data))
+            print(word_tf('order',data))
             ##Word IDF:
             word_doc_count = np.zeros(VOCABULARY_SIZE)
             for word in data : 
@@ -691,6 +753,48 @@ class NLP:
                 print('Accuracy score: ', accuracy_score(test_y, test_y_pred))
                 print('F1 score: ', f1_score(test_y, test_y_pred,average='weighted'))
 
+            Clustering Model Building:
+                def tokenize_and_stem(text):
+                    # first tokenize by sentence, then by word to ensure that punctuation is caught as it's own token
+                    tokens = [word for sent in nltk.sent_tokenize(text) for word in nltk.word_tokenize(sent)]
+                    filtered_tokens = []
+                    # filter out any tokens not containing letters (e.g., numeric tokens, raw punctuation)
+                    for token in tokens:
+                        if re.search('[a-zA-Z]', token):
+                            filtered_tokens.append(token)
+                    stems = [stemmer.stem(t) for t in filtered_tokens]
+                    return stems
+                tfidf_vectorizer = TfidfVectorizer(max_df=0.8, max_features=200000,
+                                 min_df=0.2, stop_words='english',
+                                 use_idf=True, tokenizer=tokenize_and_stem, ngram_range=(1,3))
+                tfidf_matrix = tfidf_vectorizer.fit_transform(synopses) #fit the vectorizer to synopses
+                print(tfidf_matrix.shape)
+                terms = tfidf_vectorizer.get_feature_names()
+                print(terms)
+                from sklearn.metrics.pairwise import cosine_similarity
+                dist = cosine_similarity(tfidf_matrix)
+                print(dist)
+                from sklearn.cluster import KMeans
+                num_clusters = 5
+                km = KMeans(n_clusters=num_clusters)
+                km.fit(tfidf_matrix)
+                clusters = km.labels_.tolist()
+                films = { 'title': titles, 'synopsis': synopses, 'cluster': clusters}
+                frame = pd.DataFrame(films, index = [clusters] , columns = ['title', 'cluster'])
+                k=1
+                clusters = []
+                for rows in dist:
+                    cluster = []
+                    for i in range(k, len(rows)):
+                        if rows[i] > 0.5:
+                            cluster.append(titles[i])
+                    if len(cluster) > 0:
+                        clusters.append(cluster)
+                    k+=1
+                films = { 'cluster': list(range(0,len(clusters))), 'movies': clusters}
+                frame = pd.DataFrame(films,columns = ['cluster', 'movies'])
+                frame
+
         Compute Performances of Count Vectorizer and TfidfVectorizer:
 
             #Change test_y, test_y_pred for both methods and perform these:
@@ -705,6 +809,92 @@ class NLP:
             plt.show()
             #Finally,Compare the F1 Scores.
 
+        SkipGram Embedding Model:
+            train_docs, test_docs = train_test_split(df.cleaned_text, test_size = 0.25, random_state = 42, stratify=df.airline_sentiment_enc)
+            train_y = df.loc[train_docs.index, 'airline_sentiment_enc']
+            test_y = df.loc[test_docs.index, 'airline_sentiment_enc']
+            from gensim.test.utils import common_texts
+            from gensim.models import Word2Vec
+            num_features = 300  # Word vector dimensionality
+            min_word_count = 40 # Minimum word count
+            num_workers = 4     # Number of parallel threads
+            context = 10        # Context window size
+
+            # Initializing the train model
+            from gensim.models import word2vec
+            print("Training model....")
+            model = Word2Vec(processed_entries,
+                                    workers=num_workers,
+                                    vector_size=num_features,
+                                    min_count=min_word_count,
+                                    window=context,
+                                    sg=1) # 1 for skip gram
+
+            # To make the model memory efficient
+            model.init_sims(replace=True)
+            # Saving the model for later use. Can be loaded using Word2Vec.load()
+            model_name = "300features_40minwords_10context_skipgram"
+            model.save(model_name)
+            model.wv.most_similar("trip")
+        
+        CBOW Embedding Model:
+            train_docs, test_docs = train_test_split(df.cleaned_text, test_size = 0.25, random_state = 42, stratify=df.airline_sentiment_enc)
+            train_y = df.loc[train_docs.index, 'airline_sentiment_enc']
+            test_y = df.loc[test_docs.index, 'airline_sentiment_enc']
+            from gensim.test.utils import common_texts
+            from gensim.models import Word2Vec
+            num_features = 300  # Word vector dimensionality
+            min_word_count = 40 # Minimum word count
+            num_workers = 4     # Number of parallel threads
+            context = 10        # Context window size
+
+            # Initializing the train model
+            from gensim.models import word2vec
+            print("Training model....")
+            model_cbow = Word2Vec(processed_entries,
+                                    workers=num_workers,
+                                    vector_size=num_features,
+                                    min_count=min_word_count,
+                                    window=context,
+                                    #   sample=downsampling,
+                                    sg=0)# 0 for cbow
+
+            # To make the model memory efficient
+            model_cbow.init_sims(replace=True)
+            # Saving the model for later use. Can be loaded using Word2Vec.load()
+            model_name = "300features_40minwords_10context_cbow"
+            model_cbow.save(model_name)
+            model.wv.most_similar("amp")
+
+        LSTM Embedding Model (After Skipgram and CBOW):
+            import tensorflow as tf
+            from tensorflow import keras
+            from tensorflow.keras import layers
+            keras_model = keras.Sequential(
+                [
+                    layers.Embedding(input_dim=vocab_size, output_dim=embedding_size, 
+                                weights=[pretrained_weights]),
+                    layers.LSTM(units=embedding_size),
+                    layers.Dense(1,activation='sigmoid')
+                ]
+            )
+            keras_model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+            train_x = train_docs.apply(lambda text: np.mean([model.wv[word] for word in text.split() if word in model.wv]))
+            test_x = test_docs.apply(lambda text: np.mean([model.wv[word] for word in text.split() if word in model.wv]))
+            keras_model.fit(train_x, np.array(train_y), epochs=10, validation_split=0.4, batch_size=64)
+            yp = keras_model.predict(test_x)
+            from sklearn.metrics import accuracy_score
+            accuracy_score(test_y, yp)
+
+        Sentiment Analysis using Relu Based Inbuilt Algorithm:
+            docs = data['Review']
+            docs.head()
+            import nltk
+            nltk.download('vader_lexicon')
+            from nltk.sentiment.vader import SentimentIntensityAnalyzer
+            analyzer = SentimentIntensityAnalyzer()
+            # Sample
+            print(analyzer.polarity_scores('i love tea'))
 
         Sentiment Analysis with TextBlob Library:
 
