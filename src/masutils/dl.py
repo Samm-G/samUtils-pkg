@@ -500,10 +500,12 @@ class DL:
                 from sklearn.model_selection import train_test_split
                 xtrain,xtest,ytrain,ytest=train_test_split(X,Y,test_size=0.2,random_state=48)
                 xtrain.shape, xtest.shape
-            Reshape and flatten:
+
+            Reshape and flatten: (Only for ANN)
                 Xtrain=xtrain.reshape(1649,64*64) 
                 Xtest=xtest.reshape(413,64*64)
                 Xtrain.shape, Xtest.shape
+
             Normalize Data:
                 X_train = X_train.astype('float32')
                 X_test = X_test.astype('float32')
@@ -517,7 +519,75 @@ class DL:
 
                 print("Shape of y_train:", ytrain.shape)
                 print("One value of y_train:", ytrain[0])
+
+            Fashion MNIST Preprocessing:
+
+                data = np.load('Img-Net_10.npy',allow_pickle='TRUE').item()
+                X_train = data['X_train']
+                y_train = data['y_train']
+                X_test = data['X_test']
+                y_test = data['y_test']
+
+                batch_size = 32
+                num_classes = 10
+                epochs = 20
+                data_augmentation = True
+
+                print('X_train shape : ',X_train.shape)
+                print('y_train shape : ',len(y_train))
+                print('X_test shape : ',X_test.shape)
+                print('y_test shape : ',len(y_test))
+
+                class_names = ['T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat',
+                    'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot']
             
+                Visualize Data:
+                    fig = plt.figure(figsize=(5,5))
+                    for i in range(num_classes):
+                        ax = fig.add_subplot(2, 5, 1 + i, xticks=[], yticks=[])
+                        img_num = np.random.randint(X_train.shape[0])
+                        ax.imshow(X_train[img_num], cmap='gray')
+                        ax.set(xlabel=y_train[img_num])
+                    plt.show()
+
+                Assign Classes:
+                    code = {'T-shirt/top' : 0, 'Trouser': 1, 'Pullover': 2, 'Dress': 3, 'Coat': 4,
+                        'Sandal': 5, 'Shirt': 6, 'Sneaker': 7, 'Bag': 8, 'Ankle boot': 9}
+                    import pandas as pd
+                    y_train_label = y_train
+                    y_train = list(pd.Series(y_train).replace(code))
+                    y_train = np.array(y_train)
+                    y_test_label = y_test
+                    y_test = list(pd.Series(y_test).replace(code))
+                    y_test = np.array(y_test)
+                    print("Shape of y_train:", y_train.shape)
+                    print("One value of y_train:", y_train[0])
+
+                Resize to 28x28:
+                    import cv2
+                    import numpy as np
+                    X_train_resized = np.zeros((X_train.shape[0], 28, 28))
+                    for i in range(X_train.shape[0]):
+                    X_train_resized[i,:,:] = cv2.resize(X_train[i], dsize=(28, 28), interpolation=cv2.INTER_CUBIC)
+                    X_test_resized = np.zeros((X_test.shape[0], 28, 28))
+                    for i in range(X_test.shape[0]):
+                    X_test_resized[i,:,:] = cv2.resize(X_test[i], dsize=(28, 28), interpolation=cv2.INTER_CUBIC)
+                    del(X_train, X_test)
+                    
+                    X_train = X_train_resized.reshape(X_train_resized.shape[0], 28, 28,1)
+                    X_test = X_test_resized.reshape(X_test_resized.shape[0], 28, 28,1)
+                    del(X_train_resized, X_test_resized)
+                
+                Normalize:
+                    X_train = X_train.astype('float32')
+                    X_test = X_test.astype('float32')
+                    X_train /= 255
+                    X_test /= 255
+                    
+                y_train = to_categorical(y_train, num_classes=10)
+                y_test = to_categorical(y_test, num_classes=10)
+
+
         """
         pass
 
@@ -642,5 +712,273 @@ class DL:
                 import pandas as pd
                 pd.DataFrame(best_model.cv_results_)
 
-        """
+        CNN Model:
+
+            Preprocessing:
+
+                (X_train, y_train), (X_test, y_test) = fashion_mnist.load_data()
+
+                Visualize a Sample Dataset:
+                    plt.figure(figsize=(10,10))
+                    for i in range(25):
+                        plt.subplot(5,5,i+1)
+                        plt.xticks([])
+                        plt.yticks([])
+                        plt.grid(False)
+                        plt.imshow(X_train[i], cmap=plt.cm.binary)
+                        plt.xlabel(class_names[y_train[i]])
+                    plt.show()
+
+                X_train = X_train.reshape(X_train.shape[0], 28, 28, 1)
+                X_test = X_test.reshape(X_test.shape[0], 28, 28, 1)
+
+                X_train = X_train.astype('float32')
+                X_test = X_test.astype('float32')
+                X_train /= 255
+                X_test /= 255
+
+                import numpy as np
+                xtrain1=np.expand_dims(x_train,3)
+                xtest1=np.expand_dims(x_test,3)
+
+                from tensorflow.keras.utils import to_categorical
+
+                y_train_s = to_categorical(y_train, num_classes=10)
+                y_test_s = to_categorical(y_test, num_classes=10)
+
+                print("Shape of y_train:", y_train_s.shape)
+                print("One value of y_train:", y_train_s[0])
+
+            Model 1: Base Model (Vanilla CNN):
+                from tensorflow.keras.layers import Conv2D
+                keras.backend.clear_session()
+                model = Sequential()
+                model.add(Conv2D(filters=32, kernel_size=3, activation="relu", input_shape=(28, 28, 1)))
+                model.add(Conv2D(filters=32, kernel_size=3, activation="relu"))
+                model.add(Flatten())
+                model.add(Dense(128, activation="relu"))
+                model.add(Dense(10, activation="softmax"))
+
+                Disable Trainable for some layers:
+                    for layer in model.layers:
+                    if ('dense' not in layer.name):
+                        layer.trainable=False
+                    if('dense' in layer.name):
+                        layer.trainable=True
+
+                model.compile(loss="categorical_crossentropy", metrics=["accuracy"], optimizer="adam")
+                model.summary()
+                callback = keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=2, min_delta=0.01)
+                model.fit( x=X_train, y=y_train_s, batch_size=32, epochs=10, validation_split = 0.3)
+
+                model.evaluate(X_test, y_test_s)
+
+            Model 2: (Vanilla CNN + Maxpooling + Dropout)
+                model = Sequential()
+                model.add(Conv2D(filters=32, kernel_size=3, activation="relu", input_shape=(28, 28, 1)))
+                classifier.add(MaxPooling2D(pool_size=(2,2)))
+                model.add(Conv2D(filters=32, kernel_size=3, activation="relu"))
+                model.add(MaxPooling2D(pool_size=(2, 2)))
+                model.add(Flatten())
+                model.add(Dense(128, activation="relu"))
+                model.add(Dense(10, activation="softmax"))
+
+                from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
+                keras_callback=[EarlyStopping(monitor='val_loss',patience=3,mode='min',min_delta=0.001),
+                    ModelCheckpoint('./Check_Point',monitor='val_loss',save_best_only=True)]
+
+                Disable Trainable for some layers:
+                    for layer in model.layers:
+                    if ('dense' not in layer.name):
+                        layer.trainable=False
+                    if('dense' in layer.name):
+                        layer.trainable=True
+
+                model.compile(loss="categorical_crossentropy", metrics=["accuracy"], optimizer="adam")
+                model.summary()
+                model.fit(x=X_train, y=y_train_s, batch_size=32, epochs=10, validation_data=(X_test, y_test_s), callbacks=keras_callback)
+                #or
+                model.fit(x=xtrain1,y=ytrain,batch_size=32,epochs=10,validation_split=0.2,callbacks=keras_callback)
+                model.evaluate(X_test, y_test_s)
+            
+            Make only few layers trainable:
+                for layers in model.layers:
+                if('dense' not in layers.name):
+                    layers.trainable = False
+                if('dense' in layers.name):
+                    print(layers.name + ' is trained')
+
+            Visualize Predictions:
+                import matplotlib.pyplot as plt
+                %matplotlib inline
+                plt.imshow(X_test[200].reshape(28, 28), cmap='gray')
+                y_pred = model.predict(X_test[200].reshape(1, 28, 28, 1))
+                print("Predicted label:", class_names[y_pred.argmax()])
+                print("Softmax Outputs:", y_pred)
+                print(y_pred.sum())
+                
+            Save Weights:
+                model.save_weights("fashion_MNIST_weights.h5")
+                or
+                model.save('my_digit_model.h5')
+
+            Reload Weights:
+                model.load_weights('fashion_MNIST_weights.h5')
+                model.compile(loss="categorical_crossentropy", metrics=["accuracy"], optimizer="adam")
+                model.evaluate(X_test, y_test)
+
+            Fit Model on More Data:
+                callback = tf.keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=2, min_delta=0.01)
+                model.fit(x=X_train, y=y_train, batch_size=32, epochs=15, validation_data=(X_test, y_test), callbacks=[callback])
+                model.evaluate(X_test, y_test)
+
+            Print Predictions: (duplicate this to show around 5 predictions)
+                plt.figure(figsize=(2,2))
+                plt.imshow(X_test[0].reshape(28,28), cmap='gray')
+                plt.show()
+                print("Preiction for above image: ", class_names[np.argmax(model.predict(X_test[0].reshape(1,28,28,1)))])
+        
+        Transfer Learning:
+
+            # Load Data from a h5 file..
+            data=h5py.File('SVHN_single_grey1.h5','r')
+            X_train=data['X_train'][:]
+            y_train=data['y_train'][:]
+            X_test=data['X_test'][:]
+            y_test=data['y_test'][:]
+            data.close()
+            x_train=X_train/255.
+            x_test=X_test/255.
+
+            Visualize some images:
+                import matplotlib.pyplot as plt
+                plt.imshow(x_train[20,:,:],cmap='gray')
+            Resize Images:
+                import cv2
+                import numpy as np
+                X_train_resize=np.zeros((42000,28,28))
+                for i in range(42000):
+                    X_train_resize[i,:,:]=cv2.resize(x_train[i],dsize=(28,28))
+                X_test_resize=np.zeros((18000,28,28))
+                for i in range(18000):
+                    X_test_resize[i,:,:]=cv2.resize(x_test[i],dsize=(28,28))
+                X_train_resize.shape
+                xtrain1=X_train_resize.reshape(42000,28,28,1) # u can also use np.expand_dim
+                xtest1=X_test_resize.reshape(18000,28,28,1)
+            Encode Target:
+                from tensorflow.keras.utils import to_categorical
+                ytrain=to_categorical(y_train,num_classes=10)
+                ytest=to_categorical(y_test,num_classes=10)
+                ytrain[0]
+            Define Model:
+                from tensorflow.keras.models import Sequential
+                from tensorflow.keras.layers import Conv2D,MaxPooling2D,Flatten,Dense,Dropout
+                tf.keras.backend.clear_session()
+                classifier1=Sequential()
+                classifier1.add(Conv2D(16,(3,3),input_shape=(28,28,1),activation ='relu'))
+                classifier1.add(MaxPooling2D(pool_size=(2,2)))
+                classifier1.add(Conv2D(32,(3,3),activation ='relu'))
+                classifier1.add(MaxPooling2D(pool_size=(2,2)))
+                classifier1.add(Flatten())
+                classifier1.add(Dense(units=64,activation='relu'))
+                classifier1.add(Dense(units=10,activation='softmax'))
+            Disable Trainable for some layers:
+                for layer in classifier1.layers:
+                if ('dense' not in layer.name):
+                    layer.trainable=False
+                if('dense' in layer.name):
+                    layer.trainable=True
+            Train Model:
+                classifier1.compile(loss='categorical_crossentropy',optimizer='adam',metrics=['accuracy'])
+                classifier1.summary()
+                classifier1.fit(xtrain1,ytrain,batch_size=32,epochs=10,validation_data=(xtest1,ytest))
+                classifier1.evaluate(xtest1,ytest)
+            Save Weights:
+                classifier1.save_weights('my_digit_model.h5')
+            Redefine Model:
+                tf.keras.backend.clear_session()
+                classifier1=Sequential()
+                classifier1.add(Conv2D(16,(3,3),input_shape=(28,28,1),activation ='relu'))
+                classifier1.add(MaxPooling2D(pool_size=(2,2)))
+                classifier1.add(Conv2D(32,(3,3),activation ='relu'))
+                classifier1.add(MaxPooling2D(pool_size=(2,2)))
+                classifier1.add(Dropout(0.2))
+                classifier1.add(Flatten())
+                classifier1.add(Dense(units=64,activation='relu'))
+                classifier1.add(Dropout(0.2))
+                classifier1.add(Dense(units=10,activation='softmax'))
+                for layer in classifier1.layers:
+                print(layer.name,layer.trainable)
+            Load Weights:
+                classifier1.load_weights('my_digit_model.h5')
+            Disable Trainable Again:
+                for layer in classifier1.layers:
+                if ('dense' not in layer.name):
+                    layer.trainable=False
+                if('dense' in layer.name):
+                    layer.trainable=True
+            Retrain:
+                classifier1.compile(loss='categorical_crossentropy',optimizer='adam',metrics=['accuracy'])
+                classifier1.fit(xtrain1,ytrain,batch_size=32,epochs=5,validation_data=(xtest1,ytest))
+            Save Again:
+                classifier1.save_weights('my_digit_model.h5')
+
+            
+            Approach 2: Load Weights from MobileNet:
+                base_model=tf.keras.applications.MobileNet(input_shape=(128,128,3),include_top=False)
+                #Loading the mobilenet weights for the input image size of 128,128
+                #mobilenet can support the following input size [128, 160, 192, 224]
+                base_model.summary()
+                base_model.trainable=False
+
+                tf.keras.backend.clear_session()
+                transfer_model=Sequential([base_model,
+                    Flatten(),
+                    Dropout(0.2),
+                    Dense(512,activation='relu'),
+                    Dropout(0.2),
+                    Dense(64,activation='relu'),
+                    Dropout(0.2),
+                    Dense(5,activation='softmax')])
+                transfer_model.summary()
+
+                from tensorflow.keras.preprocessing.image import ImageDataGenerator
+                train_datagen=ImageDataGenerator(rescale=1/255.,
+                    rotation_range=45,
+                    width_shift_range=0.2,
+                    height_shift_range=0.2,
+                    shear_range=0.2,
+                    zoom_range=0.2,
+                    horizontal_flip=True,
+                    fill_mode='reflect')
+                test_datagen=ImageDataGenerator(rescale=1/255.)
+
+                training_set=train_datagen.flow_from_directory('flower_photos\\Training',
+                    target_size=(128,128),
+                    batch_size=128,
+                    class_mode='categorical')
+                test_set=test_datagen.flow_from_directory('flower_photos\\Testing',
+                    target_size=(128,128),
+                    batch_size=128,
+                    class_mode='categorical')
+
+                transfer_model.compile(optimizer='adam',loss='categorical_crossentropy',metrics=['accuracy'])
+
+                transfer_model.fit(training_set,
+                    steps_per_epoch=2736/128,
+                    epochs=5,
+                    validation_data=test_set,
+                    validation_steps=934/128)
+
+                Sample Prediction:
+                    test_img=image.load_img('flower_photos\\Testing\\daisy\\107592979_aaa9cdfe78_m.jpg',
+                    target_size=(128,128))
+                    test_img1=image.img_to_array(test_img)
+                    test_img1=test_img1/255.
+                    test_img2=np.expand_dims(test_img1,axis=0)
+                    ypred=transfer_model.predict(test_img2)
+                    print(training_set.class_indices)
+                    print('The test image class is :',ypred.argmax())
+                    test_img
+    """ 
         pass
