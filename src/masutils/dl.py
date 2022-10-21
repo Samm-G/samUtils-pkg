@@ -2,10 +2,12 @@ class DL:
     def __init__(self):
         """
         Theory:
+
             ● Activations Functions:
                 ● Helps in defining the output of a node when a input is given.
                 ● Ex:
                     ● Sigmoid (0,1), Tanh(-1, 1), ReLU(0, max), Binary Step Function
+
             ● Layer Details of Feed Forward Network:
                 ● Output layer
                     ● Represents the output of the neural network
@@ -83,9 +85,9 @@ class DL:
 
             ● Neural Nertwork Architecture:
                 ● Feed Forward:
-                    Process of calculating expected output
-                    Combines weights and activation functions with the inputs
-                    Iteratively performed over training set, and classifies test input
+                    ● Process of calculating expected output
+                    ● Combines weights and activation functions with the inputs
+                    ● Iteratively performed over training set, and classifies test input
                 ● Back Propagation:
                     ● At the end of each forward pass, we have a loss (difference between expected outcome and actual)
                     ● The core of the back prop is a partial derivative of the Loss with respect to a weight - which tells us how quickly the Loss changes for any change in the weight
@@ -611,10 +613,10 @@ class DL:
                     model.add(Dense(output_nodes, activation='softmax', kernel_regularizer=regularizers.l2(Lambda)))
                     
                     sgd = optimizers.SGD(lr=learning_rate, decay=1e-6, momentum=0.9)
-                    # Compile model
+                    #Compile model
                     model.compile(loss='categorical_crossentropy', optimizer=sgd, metrics=['accuracy'])
                     
-                    # Fit the model
+                    #Fit the model
                     model.fit(X_train, y_train, epochs=iterations, batch_size=1000, verbose= 1)
                     
                     [loss,score_train]=model.evaluate(X_train,y_train)
@@ -629,7 +631,7 @@ class DL:
             Improvement 1 :
 
                 def train_and_test_loop1(iterations, lr, Lambda, verb=True):
-                    ## hyperparameters
+                    ##hyperparameters
                     iterations = iterations
                     learning_rate = lr
                     hidden_nodes = 256
@@ -641,10 +643,10 @@ class DL:
                     model.add(Dense(output_nodes, activation='softmax', kernel_regularizer=regularizers.l2(Lambda)))
                     
                     sgd = optimizers.SGD(lr=learning_rate, decay=1e-6, momentum=0.9)
-                    # Compile model
+                    #Compile model
                     model.compile(loss='categorical_crossentropy', optimizer=sgd, metrics=['accuracy'])
                     
-                    # Fit the model
+                    #Fit the model
                     model.fit(X_train, y_train, epochs=iterations, batch_size=1000, verbose= 1)
                     #score = model.evaluate(X_train, y_train, verbose=0)
                     [loss,score_train]=model.evaluate(X_train,y_train)
@@ -664,10 +666,10 @@ class DL:
                     score=train_and_test_loop1(5,i,j)
                     print('epocs:',10,'train_accuracy:',score[0],'test_accuracy:',score[1],'alpha:', i,'Regularization:',j)
                 
-                # Choose Best value and retrain again..
+                #Choose Best value and retrain again..
                 train_and_test_loop1(10,0.1,0.005)
 
-                # Approach 2: Try with Random lr and lambda:
+                #Approach 2: Try with Random lr and lambda:
                 import math
                 for k in range(1,5):
                     lr = math.pow(10, np.random.uniform(-4.0, -1.0))
@@ -801,7 +803,7 @@ class DL:
                 model.fit(x=xtrain1,y=ytrain,batch_size=32,epochs=10,validation_split=0.2,callbacks=keras_callback)
                 model.evaluate(X_test, y_test_s)
             
-            Make only few layers trainable:
+            Make only few (dense) layers trainable:
                 for layers in model.layers:
                 if('dense' not in layers.name):
                     layers.trainable = False
@@ -980,5 +982,390 @@ class DL:
                     print(training_set.class_indices)
                     print('The test image class is :',ypred.argmax())
                     test_img
+        """
+
+    def st_3_sample_model_steps():
+        """
+        SAMPLE SECTION B:
+
+            BASE MODEL:
+
+                import tensorflow as tf
+                from tensorflow.keras.models import Sequential
+                from tensorflow.keras.layers import Conv2D, MaxPool2D, Flatten, Dense, GlobalAveragePooling2D
+                from tensorflow.keras.optimizers import Adam
+                from tensorflow.keras.preprocessing.image import ImageDataGenerator
+
+                train_dir="3_food_classes/train/"
+                test_dir="3_food_classes/test/"
+
+                from tensorflow.keras.preprocessing.image import ImageDataGenerator
+                train_datagen=ImageDataGenerator(rescale=1/255.)
+                test_datagen=ImageDataGenerator(rescale=1/255.)
+                train_data=train_datagen.flow_from_directory(train_dir,
+                    target_size=(224,224),
+                    batch_size=32,
+                    class_mode='categorical')
+                test_data=test_datagen.flow_from_directory(test_dir,
+                    target_size=(224,224),
+                    batch_size=32,
+                    class_mode='categorical')
+
+                from tensorflow.keras.models import Sequential
+                from tensorflow.keras.layers import Conv2D, MaxPool2D, Flatten, Dense
+                from tensorflow.keras.optimizers import Adam
+                import tensorflow as tf
+                tf.keras.backend.clear_session()
+                base_model=Sequential([
+                    Conv2D(10, 3, activation='relu', input_shape=(224,224,3)),
+                    MaxPool2D(),
+                    Conv2D(10,3,activation='relu'),
+                    MaxPool2D(),
+                    Flatten(),
+                    Dense(3, activation='softmax')
+
+                ])
+                base_model.compile(loss='categorical_crossentropy',
+                    optimizer=Adam(),
+                    metrics=['accuracy'])
+                base_model.summary()
+
+                base_model.fit(train_data, epochs=5,
+                steps_per_epoch=len(train_data),
+                validation_data=test_data,
+                validation_steps=len(test_data))
+
+                base_model.evaluate(test_data)
+
+            IMPROVED MODEL:
+                from tensorflow.keras.preprocessing.image import ImageDataGenerator
+                train_datagen=ImageDataGenerator(rescale=1/255.,
+                    rotation_range=45,
+                    width_shift_range=0.2,
+                    height_shift_range=0.2,
+                    shear_range=0.2,
+                    zoom_range=0.2,
+                    horizontal_flip=True,
+                    fill_mode='reflect')
+                test_datagen=ImageDataGenerator(rescale=1/255.)
+                train_data=train_datagen.flow_from_directory(train_dir,
+                    target_size=(224,224),
+                    batch_size=32,
+                    class_mode='categorical')
+                test_data=test_datagen.flow_from_directory(test_dir,
+                    target_size=(224,224),
+                    batch_size=32,
+                    class_mode='categorical')
+                model1=Sequential([
+                    Conv2D(16, 3, activation='relu', input_shape=(224,224,3)),
+                    Conv2D(16,3,activation='relu'),
+                    MaxPool2D(),
+                    Conv2D(32,3,activation='relu'),
+                    MaxPool2D(),
+                    Flatten(),
+                    Dense(3, activation='softmax')
+                ])
+                model1.compile(loss='categorical_crossentropy',
+                    optimizer=Adam(learning_rate=1),
+                    metrics=['accuracy'])
+                checkpoint_path="final_model/"
+                checkpoint_callback=tf.keras.callbacks.ModelCheckpoint(checkpoint_path,
+                    save_weights=True,
+                    save_best_only=True,
+                    monitor="val_accuracy")
+                model1.summary()
+
+                model1.fit(train_data, epochs=5,
+                    steps_per_epoch=len(train_data),
+                    validation_data=test_data,
+                    validation_steps=len(test_data),callbacks=[checkpoint_callback])
+
+        SAMPLE SECTION C:
+
+            TRANSFER LEARNING:
+
+                import tensorflow as tf
+                from tensorflow.keras.preprocessing.image import ImageDataGenerator
+                from tensorflow.keras.models import Sequential
+                from tensorflow.keras.layers import Conv2D, MaxPool2D, Flatten, Dense, GlobalAveragePooling2D
+
+                train_dir="3_food_classes/train/"
+                test_dir="3_food_classes/test/"
+
+                from tensorflow.keras.preprocessing.image import ImageDataGenerator
+                train_datagen=ImageDataGenerator(rescale=1/255.,
+                    rotation_range=45,
+                    width_shift_range=0.2,
+                    height_shift_range=0.2,
+                    shear_range=0.2,
+                    zoom_range=0.2,
+                    horizontal_flip=True,
+                    fill_mode='reflect')
+                test_datagen=ImageDataGenerator(rescale=1/255.)
+                train_data=train_datagen.flow_from_directory(train_dir,
+                    target_size=(224,224),
+                    batch_size=32,
+                    class_mode='categorical')
+                test_data=test_datagen.flow_from_directory(test_dir,
+                    target_size=(224,224),
+                    batch_size=32,
+                    class_mode='categorical')
+
+                import tensorflow as tf
+                Base_model=tf.keras.models.load_model("base_model")
+                for layer_number, layer in enumerate(Base_model.layers):
+                    print(layer_number, layer.name, layer.trainable)
+                Base_model.summary()
+
+                inputs=tf.keras.layers.Input(shape=(224,224,3),name='input_layer')
+                x=Base_model(inputs,training=False)
+                p=tf.keras.layers.GlobalAveragePooling2D()(x)
+                outputs=tf.keras.layers.Dense(3,activation='softmax',name="output_layer")(p)
+                model=tf.keras.Model(inputs,outputs)
+                model.summary()
+
+                model.compile(loss="categorical_crossentropy",
+                optimizer=tf.keras.optimizers.Adam(),
+                metrics=['accuracy'])
+                history=model.fit(train_data,
+                    epochs=5,
+                    steps_per_epoch=len(train_data),
+                    validation_data=test_data,
+                    validation_steps=len(test_data),
+                    )
+                model.evaluate(test_data)
+
+            SEMANTIC SEGMENTATION (UNET MODEL):
+
+                import os
+                import cv2
+                from PIL import Image
+                import tensorflow as tf
+                import numpy as np
+                from matplotlib import pyplot as plt
+                import segmentation_models as sm
+                from sklearn.model_selection import train_test_split
+
+                image_dir='Unet_Dataset/images/'
+                mask_dir='Unet_Dataset/MASKS_BW/'
+
+                SIZE=128
+                img_dataset=[]
+                mask_dataset=[]
+                images=os.listdir(image_dir)
+                for i,image_name in enumerate(images):
+                    if (image_name.split('.')[1]=='png'):
+                        image=cv2.imread(image_dir+image_name)
+                        image=Image.fromarray(image)
+                        image=image.resize((SIZE,SIZE))
+                        img_dataset.append(np.array(image))
+                len(img_dataset)
+                img_dataset[0].shape
+
+                masks=os.listdir(mask_dir)
+                for i,image_name in enumerate(masks):
+                    if (image_name.split('.')[1]=='png'):
+                        image=cv2.imread(mask_dir+image_name,0)
+                        image=Image.fromarray(image)
+                        image=image.resize((SIZE,SIZE))
+                        mask_dataset.append(np.array(image))
+                
+                img_dataset=np.array(img_dataset)
+                #img_dataset=normalize(img_dataset)
+                img_dataset=img_dataset/255.
+                #img_dataset=np.expand_dims(img_dataset,3)
+
+                mask_dataset=np.array(mask_dataset)
+                mask_dataset=mask_dataset/255.
+                mask_dataset=np.expand_dims(mask_dataset,3)
+
+                mask_dataset.shape
+
+                #TTSplit
+                from sklearn.model_selection import train_test_split
+                x_train,x_test,y_train,y_test=train_test_split(img_dataset,mask_dataset,test_size=0.10,random_state=0)
+                BACKBONE = 'resnet18'
+                preprocess_input = sm.get_preprocessing(BACKBONE)
+                #preprocess input
+                X_train_prepr = preprocess_input(x_train)
+                X_test_prepr = preprocess_input(x_test)
+                model = sm.Unet(BACKBONE, encoder_weights='imagenet')
+                model = sm.Unet(BACKBONE, classes=1, activation='sigmoid')
+
+                #Compile and Train
+                model.compile('Adam',loss=sm.losses.bce_jaccard_loss,metrics=[sm.metrics.iou_score])
+                X_train_prepr.shape
+                history=model.fit(X_train_prepr, 
+                    y_train,
+                    batch_size=16, 
+                    epochs=50,
+                    verbose=1,
+                    validation_data=(X_test_prepr, y_test))
+
+                #Predict
+                n1=np.random.randint(0,len(x_train))
+                test_img=x_train[n1]
+                mask_test_img=y_train[n1]
+                test_img1=np.expand_dims(test_img,0)
+                pred_img=model.predict(test_img1)
+                pred_img1=(pred_img[0,:,:,0]>0.5).astype(np.uint8)
+
+                #Show Predictions
+                plt.figure(figsize=(16,8))
+                plt.subplot(131)
+                plt.title('Original')
+                plt.imshow(test_img[:,:,0],cmap='gray')
+                plt.subplot(132)
+                plt.title('Mask Original')
+                plt.imshow(mask_test_img[:,:,0],cmap='gray')
+                plt.subplot(133)
+                plt.title('Segmented Image')
+                plt.imshow(pred_img1,cmap='gray')
+
+            OBJECT DETECTION:
+
+                import tensorflow as tf
+                from tensorflow.keras.applications import MobileNet
+                from tensorflow.keras.applications.mobilenet import preprocess_input
+                from tensorflow.keras.preprocessing.image import img_to_array
+                from tensorflow.keras.applications import imagenet_utils
+                import imutils
+                from imutils.object_detection import non_max_suppression
+                import time
+                import cv2
+                import numpy as np
+                from sliding_window import sliding_window
+                from image_pyramid import image_pyramid
+
+                WIDTH = 600 #resize the images to the size of 600x600
+                PYR_SCALE = 1.5 #To creating the multiple scaled version of image
+                WIN_STEP = 16 #Sliding Window step size 
+                ROI_SIZE = (250,250) #Region of interest (Sub image block) size
+                INPUT_SIZE = (224, 224) #input image size (We are using mobilenet architecture)
+                visualize=0 #control parameter for visualizing images
+                min_conf=0.9 #class probability threshold for the object predicted in each RoI
+
+                model = MobileNet(weights="imagenet", include_top=True)
+                orig = cv2.imread('hummingbird.jpg')
+                orig = imutils.resize(orig, width=WIDTH)
+                (H, W) = orig.shape[:2]
+
+                pyramid = image_pyramid(orig, scale=PYR_SCALE, minSize=ROI_SIZE)
+                rois = []
+                locs = []
+                start = time.time()
+                #loop over the image pyramid
+                for image in pyramid:
+                    #determine the scale factor between the *original* image
+                    #dimensions and the *current* layer of the pyramid
+                    scale = W / float(image.shape[1])
+                    #for each layer of the image pyramid, loop over the sliding
+                    #window locations
+                    for (x, y, roiOrig) in sliding_window(image, WIN_STEP, ROI_SIZE):
+                        #scale the (x, y)-coordinates of the ROI with respect to the
+                        #*original* image dimensions
+                        x = int(x * scale)
+                        y = int(y * scale)
+                        w = int(ROI_SIZE[0] * scale)
+                        h = int(ROI_SIZE[1] * scale)
+                        #take the ROI and pre-process it so we can later classify
+                        #the region using Keras/TensorFlow
+                        roi = cv2.resize(roiOrig, INPUT_SIZE)
+                        roi = img_to_array(roi)
+                        roi = preprocess_input(roi)
+                        #update our list of ROIs and associated coordinates
+                        rois.append(roi)
+                        locs.append((x, y, x + w, y + h))
+                        #check to see if we are visualizing each of the sliding
+                        #windows in the image pyramid
+                        if visualize > 0:
+                            #clone the original image and then draw a bounding box
+                            #surrounding the current region
+                            clone = orig.copy()
+                            cv2.rectangle(clone, (x, y), (x + w, y + h),(0, 255, 0), 2)
+                            #show the visualization and current ROI
+                            cv2.imshow("Visualization", clone)
+                            cv2.imshow("ROI", roiOrig)
+                            cv2.waitKey(0)
+                            cv2.destroyAllWindows()
+                end = time.time()
+                print("looping over pyramid/windows took {:.5f} seconds".format(end - start))
+
+                rois = np.array(rois, dtype="float32")
+
+                print("classifying ROIs...")
+                start = time.time()
+                preds = model.predict(rois)
+                end = time.time()
+                print("classifying ROIs took {:.5f} seconds".format(end - start))
+                preds.shape
+                preds = imagenet_utils.decode_predictions(preds, top=1)
+
+                #Pred Probability:
+                labels = {}
+                for (i, p) in enumerate(preds):
+                    im_id,obj,prob=p[0]
+                    if prob>0.9:
+                        bb=locs[i]
+                        L=labels.get(obj,[])
+                        L.append((bb, prob))
+                        labels[obj] = L
+                labels.keys()
+
+                boxes1=[]
+                lab=[]
+                for label in labels.keys():
+                    #clone the original image so that we can draw on it
+                    print("showing results for '{}'".format(label))
+                    clone = orig.copy()
+
+                    #loop over all bounding boxes for the current label
+                    for (box, prob) in labels[label]:
+                        # draw the bounding box on the image
+                        (startX, startY, endX, endY) = box
+                        cv2.rectangle(clone, (startX, startY), (endX, endY),(0, 255, 0), 2)
+
+                    #show the results *before* applying non-maxima suppression, then
+                    #clone the image again so we can display the results *after*
+                    #applying non-maxima suppression
+                    cv2.imshow("Before", clone)
+                    cv2.waitKey(0)
+                    clone = orig.copy()
+
+                    #extract the bounding boxes and associated prediction
+                    #probabilities, then apply non-maxima suppression
+                    boxes = np.array([p[0] for p in labels[label]])
+                    proba = np.array([p[1] for p in labels[label]])
+                    boxes = non_max_suppression(boxes, proba)
+                    boxes1.append(boxes)
+                    lab.append(label)
+                    #loop over all bounding boxes that were kept after applying
+                    #non-maxima suppression
+                    for (startX, startY, endX, endY) in boxes:
+                        #draw the bounding box and label on the image
+                        cv2.rectangle(clone, (startX, startY), (endX, endY),(0, 255, 0), 2)
+                        y = startY - 10 if startY - 10 > 10 else startY + 10
+                        cv2.putText(clone, label, (startX, y),cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 0), 2)
+
+                    #show the output after apply non-maxima suppression
+                    cv2.imshow("After", clone)
+                    cv2.waitKey(0);
+                    cv2.destroyAllWindows()
+
+                len(boxes1),lab
+
+                clone = orig.copy()
+                for i in range(len(boxes1)):
+                    bb=boxes1[i][0]
+                    cv2.rectangle(clone, (bb[0], bb[1]), (bb[2], bb[3]),(0, 255, 0), 2)
+                    y = bb[1] - 10 if bb[1] - 10 > 10 else bb[1] + 10
+                    cv2.putText(clone, lab[i], (bb[0], y),cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 0), 2)
+                    cv2.imshow("Final Objects", clone)
+                    cv2.waitKey(0);cv2.destroyAllWindows()
+                
+                from matplotlib import pyplot as plt
+                plt.imshow(cv2.cvtColor(clone, cv2.COLOR_BGR2RGB))
+                plt.show()
+
     """ 
         pass
